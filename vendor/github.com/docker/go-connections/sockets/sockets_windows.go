@@ -5,11 +5,23 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Microsoft/go-winio"
+	winio "github.com/Microsoft/go-winio"
+	"github.com/sirupsen/logrus"
 )
 
 func configureUnixTransport(tr *http.Transport, proto, addr string) error {
-	return ErrProtocolNotAvailable
+	addr = "C:" + addr
+	logrus.Warn("Socket address is: %s", addr)
+	addrUnix, _ := net.ResolveUnixAddr("unix", addr)
+	tr.DisableCompression = true
+	tr.Dial = func(_, _ string) (net.Conn, error) {
+		c, err := net.DialUnix(proto, nil, addrUnix)
+		if err != nil {
+			logrus.Errorf("Unix connection failed: %v", err)
+		}
+		return c, err
+	}
+	return nil
 }
 
 func configureNpipeTransport(tr *http.Transport, proto, addr string) error {
